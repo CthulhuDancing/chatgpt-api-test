@@ -22,3 +22,118 @@ on:
 
 permissions:
   contents: write
+
+jobs:
+  commit-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate raw inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BRANCH="${{ inputs.branch }}"
+          COMMIT_MESSAGE="${{ inputs.commit_message }}"
+          TARGET_FILE="${{ inputs.target_file }}"
+
+          if [ -z "$BRANCH" ]; then
+            echo "Error: branch input is required"
+            exit 1
+          fi
+
+          if [ -z "$COMMIT_MESSAGE" ]; then
+            echo "Error: commit_message input is required"
+            exit 1
+          fi
+
+          if [ -z "$TARGET_FILE" ]; then
+            echo "Error: target_file input is required"
+            exit 1
+          fi
+
+          if [[ "$TARGET_FILE" == /* ]]; then
+            echo "Error: target_file must be a relative path"
+            exit 1
+          fi
+
+          if [[ "$TARGET_FILE" == *".."* ]]; then
+            echo "Error: target_file must not contain '..'"
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0
+
+      - name: Confirm branch exists
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BRANCH="${{ inputs.branch }}"
+
+          if ! git rev-parse --verify "origin/$BRANCH" >/dev/null 2>&1 && ! git rev-parse --verify "$BRANCH" >/dev/null 2>&1; then
+            echo "Error: branch '$BRANCH' does not exist"
+            exit 1
+          fi
+
+      - name: Confirm target file exists
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TARGET_FILE="${{ inputs.target_file }}"
+
+          if [ ! -f "$TARGET_FILE" ]; then
+            echo "Error: target file '$TARGET_FILE' does not exist"
+            exit 1
+          fi
+
+      - name: Write new content
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TARGET_FILE="${{ inputs.target_file }}"
+
+          cat > "$TARGET_FILE" <<'EOF'
+          ${{ inputs.new_content }}
+          EOF
+
+      - name: Detect changes
+        id: detect_changes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet -- "${{ inputs.target_file }}"; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Error: no file changes detected"
+            exit 1
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure git identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit changes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git add "${{ inputs.target_file }}"
+          git commit -m "${{ inputs.commit_message }}"
+
+      - name: Push changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push origin "${{ inputs.branch }}"
