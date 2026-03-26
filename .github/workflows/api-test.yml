@@ -1,0 +1,10 @@
+name: GPT API Connection Test
+on:
+  repository_dispatch:
+    types: [demo-workflow-dispatch]
+jobs:
+  ping-back:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acknowledge GPT
+        run: echo 'The GPT successfully triggered this workflow via API!'
