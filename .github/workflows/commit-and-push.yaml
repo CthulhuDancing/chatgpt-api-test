@@ -68,18 +68,6 @@ jobs:
           ref: ${{ inputs.branch }}
           fetch-depth: 0
 
-      - name: Confirm branch exists
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          BRANCH="${{ inputs.branch }}"
-
-          if ! git rev-parse --verify "origin/$BRANCH" >/dev/null 2>&1 && ! git rev-parse --verify "$BRANCH" >/dev/null 2>&1; then
-            echo "Error: branch '$BRANCH' does not exist"
-            exit 1
-          fi
-
       - name: Confirm target file exists
         shell: bash
         run: |
