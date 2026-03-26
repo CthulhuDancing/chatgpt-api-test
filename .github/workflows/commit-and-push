@@ -1,0 +1,24 @@
+name: commit-and-push
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Target branch to push to"
+        required: true
+        type: string
+      commit_message:
+        description: "Commit message"
+        required: true
+        type: string
+      target_file:
+        description: "Exact file path to update"
+        required: true
+        type: string
+      new_content:
+        description: "Full replacement file content"
+        required: true
+        type: string
+
+permissions:
+  contents: write
